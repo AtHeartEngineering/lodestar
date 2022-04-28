@@ -11,6 +11,7 @@ import {BlockProposingService} from "./services/block";
 import {AttestationService} from "./services/attestation";
 import {IndicesService} from "./services/indices";
 import {SyncCommitteeService} from "./services/syncCommittee";
+import {PrepareBeaconProposerService} from "./services/prepareBeaconProposer";
 import {ISlashingProtection} from "./slashingProtection";
 import {assertEqualParams, getLoggerVc, NotEqualParamsError} from "./util";
 import {ChainHeaderTracker} from "./services/chainHeaderTracker";
@@ -52,6 +53,7 @@ export class Validator {
   private readonly attestationService: AttestationService;
   private readonly syncCommitteeService: SyncCommitteeService;
   private readonly indicesService: IndicesService;
+  private readonly prepareBeaconProposerService: PrepareBeaconProposerService | null;
   private readonly config: IBeaconConfig;
   private readonly api: Api;
   private readonly clock: IClock;
@@ -116,6 +118,18 @@ export class Validator {
       this.indicesService,
       metrics
     );
+
+    this.prepareBeaconProposerService = opts.defaultSuggestedFeeRecipient
+      ? new PrepareBeaconProposerService(
+          loggerVc,
+          api,
+          clock,
+          validatorStore,
+          opts.defaultSuggestedFeeRecipient,
+          this.indicesService,
+          metrics
+        )
+      : null;
 
     this.config = config;
     this.logger = logger;
