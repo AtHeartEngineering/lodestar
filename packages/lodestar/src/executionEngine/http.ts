@@ -1,5 +1,5 @@
 import {AbortSignal} from "@chainsafe/abort-controller";
-import {bellatrix, RootHex, Root} from "@chainsafe/lodestar-types";
+import {bellatrix, RootHex, Root, Epoch} from "@chainsafe/lodestar-types";
 import {BYTES_PER_LOGS_BLOOM} from "@chainsafe/lodestar-params";
 import {fromHex} from "@chainsafe/lodestar-utils";
 
@@ -22,6 +22,7 @@ import {
   PayloadId,
   PayloadAttributes,
   ApiPayloadAttributes,
+  ProposerPreparationData
 } from "./interface";
 
 export type ExecutionEngineHttpOpts = {
@@ -270,6 +271,9 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     });
 
     return parseExecutionPayload(executionPayloadRpc);
+  }
+
+  async updateProposerPreparation(currentEpoch: Epoch, proposers: ProposerPreparationData[]){
   }
 }
 

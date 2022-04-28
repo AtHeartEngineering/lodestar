@@ -1,6 +1,6 @@
 import {AbortController, AbortSignal} from "@chainsafe/abort-controller";
 import {IDatabaseApiOptions} from "@chainsafe/lodestar-db";
-import {ssz} from "@chainsafe/lodestar-types";
+import {ssz, ExecutionAddress} from "@chainsafe/lodestar-types";
 import {createIBeaconConfig, IBeaconConfig} from "@chainsafe/lodestar-config";
 import {Genesis} from "@chainsafe/lodestar-types/phase0";
 import {ILogger} from "@chainsafe/lodestar-utils";
@@ -29,6 +29,7 @@ export type ValidatorOptions = {
   signers: Signer[];
   logger: ILogger;
   graffiti?: string;
+  defaultSuggestedFeeRecipient?: ExecutionAddress;
 };
 
 // TODO: Extend the timeout, and let it be customizable
@@ -60,7 +61,7 @@ export class Validator {
   private state: State = {status: Status.stopped};
 
   constructor(opts: ValidatorOptions, readonly genesis: Genesis, metrics: Metrics | null = null) {
-    const {dbOps, logger, slashingProtection, signers, graffiti} = opts;
+    const {dbOps, logger, slashingProtection, signers, graffiti, defaultSuggestedFeeRecipient} = opts;
     const config = createIBeaconConfig(dbOps.config, genesis.genesisValidatorsRoot);
 
     const api =
@@ -90,7 +91,8 @@ export class Validator {
       clock,
       validatorStore,
       metrics,
-      graffiti
+      graffiti,
+      defaultSuggestedFeeRecipient
     );
 
     this.attestationService = new AttestationService(

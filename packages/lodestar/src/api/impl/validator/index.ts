@@ -580,5 +580,9 @@ export function getValidatorApi({chain, config, logger, metrics, network, sync}:
 
       network.prepareSyncCommitteeSubnets(subs);
     },
+
+    async prepareBeaconProposer(proposers){
+      await chain.executionEngine.updateProposerPreparation(chain.clock.currentEpoch,proposers);
+    }
   };
 }

@@ -1,4 +1,4 @@
-import {bellatrix, Root, RootHex} from "@chainsafe/lodestar-types";
+import {bellatrix, Root, RootHex, ValidatorIndex, Epoch, ExecutionAddress} from "@chainsafe/lodestar-types";
 
 import {DATA, QUANTITY} from "../eth1/provider/utils";
 // An execution engine can produce a payload id anywhere the the uint64 range
@@ -63,6 +63,11 @@ export type ApiPayloadAttributes = {
   /** DATA, 20 Bytes - suggested value for the coinbase field of the new payload */
   suggestedFeeRecipient: DATA;
 };
+
+export type ProposerPreparationData={
+  validatorIndex: ValidatorIndex;
+  feeRecipient: ExecutionAddress;
+}
 /**
  * Execution engine represents an abstract protocol to interact with execution clients. Potential transports include:
  * - JSON RPC over network
@@ -107,4 +112,6 @@ export interface IExecutionEngine {
    * https://github.com/ethereum/consensus-specs/blob/dev/specs/merge/validator.md#get_payload
    */
   getPayload(payloadId: PayloadId): Promise<bellatrix.ExecutionPayload>;
+
+  updateProposerPreparation(currentEpoch: Epoch,proposers: ProposerPreparationData[]): Promise<void>
 }

@@ -1,4 +1,4 @@
-import {BLSPubkey, Slot} from "@chainsafe/lodestar-types";
+import {BLSPubkey, Slot, ExecutionAddress} from "@chainsafe/lodestar-types";
 import {IChainForkConfig} from "@chainsafe/lodestar-config";
 import {ForkName} from "@chainsafe/lodestar-params";
 import {prettyBytes} from "@chainsafe/lodestar-utils";
@@ -23,7 +23,8 @@ export class BlockProposingService {
     private readonly clock: IClock,
     private readonly validatorStore: ValidatorStore,
     private readonly metrics: Metrics | null,
-    private readonly graffiti?: string
+    private readonly graffiti?: string,
+    private readonly defaultSuggestedFeeRecipient?: ExecutionAddress
   ) {
     this.dutiesService = new BlockDutiesService(
       logger,

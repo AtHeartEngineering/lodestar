@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import {bellatrix, RootHex, Root} from "@chainsafe/lodestar-types";
+import {bellatrix, RootHex, Root, Epoch} from "@chainsafe/lodestar-types";
 import {toHexString} from "@chainsafe/ssz";
 import {ZERO_HASH, ZERO_HASH_HEX} from "../constants";
 import {
@@ -8,6 +8,7 @@ import {
   IExecutionEngine,
   PayloadId,
   PayloadAttributes,
+  ProposerPreparationData
 } from "./interface";
 import {BYTES_PER_LOGS_BLOOM} from "@chainsafe/lodestar-params";
 const INTEROP_GAS_LIMIT = 30e6;
@@ -139,5 +140,8 @@ export class ExecutionEngineMock implements IExecutionEngine {
     }
     this.preparingPayloads.delete(payloadIdNbr);
     return payload;
+  }
+
+  async updateProposerPreparation(currentEpoch: Epoch, proposers: ProposerPreparationData[]){
   }
 }

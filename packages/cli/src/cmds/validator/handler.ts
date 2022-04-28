@@ -11,7 +11,7 @@ import {onGracefulShutdown} from "../../util";
 import {getVersion, getVersionGitData} from "../../util/version";
 import {getBeaconPaths} from "../beacon/paths";
 import {getValidatorPaths} from "./paths";
-import {IValidatorCliArgs, validatorMetricsDefaultOptions} from "./options";
+import {IValidatorCliArgs, validatorMetricsDefaultOptions, defaultDefaultSuggestedFeeRecipient,parseFeeRecipient} from "./options";
 import {getLocalSecretKeys, getExternalSigners, groupExternalSignersByUrl} from "./keys";
 
 /**
@@ -21,6 +21,7 @@ export async function validatorHandler(args: IValidatorCliArgs & IGlobalArgs): P
   await initBLS();
 
   const graffiti = args.graffiti || getDefaultGraffiti();
+  const defaultSuggestedFeeRecipient = parseFeeRecipient(args.defaultSuggestedFeeRecipient ?? defaultDefaultSuggestedFeeRecipient)
 
   const validatorPaths = getValidatorPaths(args);
   const beaconPaths = getBeaconPaths(args);
@@ -129,7 +130,7 @@ export async function validatorHandler(args: IValidatorCliArgs & IGlobalArgs): P
   // It will wait for genesis, so this promise can be potentially very long
 
   const validator = await Validator.initializeFromBeaconNode(
-    {dbOps, slashingProtection, api: args.server, logger, signers, graffiti},
+    {dbOps, slashingProtection, api: args.server, logger, signers, graffiti, defaultSuggestedFeeRecipient},
     controller.signal,
     metrics
   );
