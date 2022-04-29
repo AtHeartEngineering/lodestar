@@ -1,27 +1,17 @@
-import {fromHex} from "@chainsafe/lodestar-utils";
-import {ExecutionAddress} from "@chainsafe/lodestar-types";
-
 import {ICliCommandOptions, ILogArgs} from "../../util";
 import {defaultValidatorPaths} from "./paths";
 import {accountValidatorOptions, IAccountValidatorArgs} from "../account/cmds/validator/options";
 import {logOptions, beaconPathsOptions} from "../beacon/options";
 import {IBeaconPaths} from "../beacon/paths";
 import {KeymanagerArgs, keymanagerOptions} from "../../options/keymanagerOptions";
+import {defaultDefaultSuggestedFeeRecipient} from "@chainsafe/lodestar";
 
+export {defaultDefaultSuggestedFeeRecipient};
 export const validatorMetricsDefaultOptions = {
   enabled: false,
   port: 5064,
   address: "127.0.0.1",
 };
-
-export const defaultDefaultSuggestedFeeRecipient = "0x0000000000000000000000000000000000000000"
-export function parseFeeRecipient(feeRecipientHexString :string):ExecutionAddress{
-  const hexPattern = new RegExp(/^(0x|0X)(?<feeRecipientString>[a-fA-F0-9]{40})$/, "g");
-  const feeRecipientStringMatch = hexPattern.exec(feeRecipientHexString);
-  const feeRecipientString = feeRecipientStringMatch?.groups?.feeRecipientString;
-  if(feeRecipientString===undefined) throw Error(`Invalid feeRecipient= ${feeRecipientHexString}, expected format: ^0x[a-fA-F0-9]{40}$`)
-  return fromHex(feeRecipientString);
-}
 
 export type IValidatorCliArgs = IAccountValidatorArgs &
   ILogArgs & {
@@ -76,7 +66,8 @@ export const validatorOptions: ICliCommandOptions<IValidatorCliArgs> = {
   },
 
   defaultSuggestedFeeRecipient: {
-    description: "Specify fee recipient default for collecting the EL block fees and rewards (a hex string representing 20 bytes address: ^0x[a-fA-F0-9]{40}$). It would be possible (WIP) to override this per validator key using config or keymanager API.",
+    description:
+      "Specify fee recipient default for collecting the EL block fees and rewards (a hex string representing 20 bytes address: ^0x[a-fA-F0-9]{40}$). It would be possible (WIP) to override this per validator key using config or keymanager API.",
     default: defaultDefaultSuggestedFeeRecipient,
     type: "string",
   },

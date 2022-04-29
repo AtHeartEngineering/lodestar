@@ -6,12 +6,20 @@ import {KeymanagerServer, KeymanagerApi} from "@chainsafe/lodestar-keymanager-se
 import {RegistryMetricCreator, collectNodeJSMetrics, HttpMetricsServer} from "@chainsafe/lodestar";
 import {getBeaconConfigFromArgs} from "../../config";
 import {IGlobalArgs} from "../../options";
-import {YargsError, getDefaultGraffiti, initBLS, mkdir, getCliLogger} from "../../util";
-import {onGracefulShutdown} from "../../util";
+import {
+  YargsError,
+  getDefaultGraffiti,
+  initBLS,
+  mkdir,
+  getCliLogger,
+  onGracefulShutdown,
+  parseFeeRecipient,
+} from "../../util";
+
 import {getVersion, getVersionGitData} from "../../util/version";
 import {getBeaconPaths} from "../beacon/paths";
 import {getValidatorPaths} from "./paths";
-import {IValidatorCliArgs, validatorMetricsDefaultOptions, defaultDefaultSuggestedFeeRecipient,parseFeeRecipient} from "./options";
+import {IValidatorCliArgs, validatorMetricsDefaultOptions, defaultDefaultSuggestedFeeRecipient} from "./options";
 import {getLocalSecretKeys, getExternalSigners, groupExternalSignersByUrl} from "./keys";
 
 /**
@@ -21,7 +29,9 @@ export async function validatorHandler(args: IValidatorCliArgs & IGlobalArgs): P
   await initBLS();
 
   const graffiti = args.graffiti || getDefaultGraffiti();
-  const defaultSuggestedFeeRecipient = parseFeeRecipient(args.defaultSuggestedFeeRecipient ?? defaultDefaultSuggestedFeeRecipient)
+  const defaultSuggestedFeeRecipient = parseFeeRecipient(
+    args.defaultSuggestedFeeRecipient ?? defaultDefaultSuggestedFeeRecipient
+  );
 
   const validatorPaths = getValidatorPaths(args);
   const beaconPaths = getBeaconPaths(args);

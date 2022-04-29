@@ -36,9 +36,10 @@ export type ExecutionEngineHttpOpts = {
    * +-5 seconds interval.
    */
   jwtSecretHex?: string;
-  defaultSuggestedFeeRecipient?: ExecutionAddress;
+  defaultSuggestedFeeRecipientHex?: string;
 };
 
+export const defaultDefaultSuggestedFeeRecipient = "0x0000000000000000000000000000000000000000";
 export const defaultExecutionEngineHttpOpts: ExecutionEngineHttpOpts = {
   /**
    * By default ELs host engine api on an auth protected 8551 port, would need a jwt secret to be
@@ -47,6 +48,7 @@ export const defaultExecutionEngineHttpOpts: ExecutionEngineHttpOpts = {
    */
   urls: ["http://localhost:8551"],
   timeout: 12000,
+  defaultSuggestedFeeRecipientHex: defaultDefaultSuggestedFeeRecipient,
 };
 
 /**
@@ -61,13 +63,12 @@ export const defaultExecutionEngineHttpOpts: ExecutionEngineHttpOpts = {
 export class ExecutionEngineHttp implements IExecutionEngine {
   readonly proposers: MapDef<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>;
   private readonly rpc: IJsonRpcHttpClient;
-  private readonly defaultSuggestedFeeRecipient: ExecutionAddress;
 
   constructor(opts: ExecutionEngineHttpOpts, signal: AbortSignal, rpc?: IJsonRpcHttpClient) {
-    this.defaultSuggestedFeeRecipient = opts.defaultSuggestedFeeRecipient ?? Buffer.alloc(20, 0);
+    const feeRecipient = fromHex(opts.defaultSuggestedFeeRecipientHex ?? defaultDefaultSuggestedFeeRecipient);
     this.proposers = new MapDef<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>(() => ({
       epoch: 0,
-      feeRecipient: this.defaultSuggestedFeeRecipient,
+      feeRecipient,
     }));
     this.rpc =
       rpc ??

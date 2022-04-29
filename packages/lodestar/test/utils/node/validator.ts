@@ -11,13 +11,15 @@ import {
   ISlashingProtection,
   SignerLocal,
 } from "@chainsafe/lodestar-validator";
-import {BeaconNode} from "../../../src/node";
-import {testLogger, TestLoggerOpts} from "../logger";
+
 import {SecretKey} from "@chainsafe/bls";
 import {getLocalSecretKeys} from "@chainsafe/lodestar-cli/src/cmds/validator/keys";
-import {IValidatorCliArgs, parseFeeRecipient} from "@chainsafe/lodestar-cli/src/cmds/validator/options";
+import {IValidatorCliArgs} from "@chainsafe/lodestar-cli/src/cmds/validator/options";
 import {IGlobalArgs} from "@chainsafe/lodestar-cli/src/options";
 import {KEY_IMPORTED_PREFIX} from "@chainsafe/lodestar-keymanager-server";
+
+import {BeaconNode} from "../../../src/node";
+import {testLogger, TestLoggerOpts} from "../logger";
 
 export async function getAndInitValidatorsWithKeystore({
   node,
@@ -163,7 +165,6 @@ export async function getAndInitDevValidators({
         slashingProtection,
         logger,
         signers,
-        defaultSuggestedFeeRecipient: parseFeeRecipient("0xafa3f8684e54059998bc3a7b0d2b0da075154d66"),
       })
     );
   }

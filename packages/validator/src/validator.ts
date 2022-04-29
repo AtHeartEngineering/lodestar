@@ -93,8 +93,7 @@ export class Validator {
       clock,
       validatorStore,
       metrics,
-      graffiti,
-      defaultSuggestedFeeRecipient
+      graffiti
     );
 
     this.attestationService = new AttestationService(
@@ -119,13 +118,13 @@ export class Validator {
       metrics
     );
 
-    this.prepareBeaconProposerService = opts.defaultSuggestedFeeRecipient
+    this.prepareBeaconProposerService = defaultSuggestedFeeRecipient
       ? new PrepareBeaconProposerService(
           loggerVc,
           api,
           clock,
           validatorStore,
-          opts.defaultSuggestedFeeRecipient,
+          defaultSuggestedFeeRecipient,
           this.indicesService,
           metrics
         )
