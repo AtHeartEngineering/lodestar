@@ -24,6 +24,7 @@ import {
   ApiPayloadAttributes,
   ProposerPreparationData,
 } from "./interface";
+import {MapDef} from "../util/map";
 
 export type ExecutionEngineHttpOpts = {
   urls: string[];
@@ -35,6 +36,7 @@ export type ExecutionEngineHttpOpts = {
    * +-5 seconds interval.
    */
   jwtSecretHex?: string;
+  defaultSuggestedFeeRecipient?: ExecutionAddress;
 };
 
 export const defaultExecutionEngineHttpOpts: ExecutionEngineHttpOpts = {
@@ -57,10 +59,16 @@ export const defaultExecutionEngineHttpOpts: ExecutionEngineHttpOpts = {
  * https://github.com/ethereum/execution-apis/blob/v1.0.0-alpha.1/src/engine/interop/specification.md
  */
 export class ExecutionEngineHttp implements IExecutionEngine {
-  readonly proposers = new Map<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>();
+  readonly proposers: MapDef<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>;
   private readonly rpc: IJsonRpcHttpClient;
+  private readonly defaultSuggestedFeeRecipient: ExecutionAddress;
 
   constructor(opts: ExecutionEngineHttpOpts, signal: AbortSignal, rpc?: IJsonRpcHttpClient) {
+    this.defaultSuggestedFeeRecipient = opts.defaultSuggestedFeeRecipient ?? Buffer.alloc(20, 0);
+    this.proposers = new MapDef<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>(() => ({
+      epoch: 0,
+      feeRecipient: this.defaultSuggestedFeeRecipient,
+    }));
     this.rpc =
       rpc ??
       new JsonRpcHttpClient(opts.urls, {

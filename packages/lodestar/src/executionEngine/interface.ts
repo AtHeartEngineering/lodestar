@@ -1,4 +1,5 @@
 import {bellatrix, Root, RootHex, ValidatorIndex, Epoch, ExecutionAddress} from "@chainsafe/lodestar-types";
+import {MapDef} from "../util/map";
 
 import {DATA, QUANTITY} from "../eth1/provider/utils";
 // An execution engine can produce a payload id anywhere the the uint64 range
@@ -75,6 +76,7 @@ export type ProposerPreparationData = {
  * - Integrated code into the same binary
  */
 export interface IExecutionEngine {
+  proposers: MapDef<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>;
   /**
    * A state transition function which applies changes to the self.execution_state.
    * Returns ``True`` iff ``execution_payload`` is valid with respect to ``self.execution_state``.
