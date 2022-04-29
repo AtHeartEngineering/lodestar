@@ -26,7 +26,7 @@ export class PrepareBeaconProposerService {
     private readonly indicesService: IndicesService,
     private readonly metrics: Metrics | null
   ) {
-    clock.runEveryEpoch(this.prepareBeaconProposer);
+    clock.runEverySlot(this.prepareBeaconProposer);
   }
 
   private prepareBeaconProposer = async (epoch: Epoch): Promise<void> => {

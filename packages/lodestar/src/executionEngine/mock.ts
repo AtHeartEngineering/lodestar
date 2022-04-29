@@ -8,7 +8,7 @@ import {
   IExecutionEngine,
   PayloadId,
   PayloadAttributes,
-  ProposerPreparationData
+  ProposerPreparationData,
 } from "./interface";
 import {BYTES_PER_LOGS_BLOOM} from "@chainsafe/lodestar-params";
 const INTEROP_GAS_LIMIT = 30e6;
@@ -142,6 +142,7 @@ export class ExecutionEngineMock implements IExecutionEngine {
     return payload;
   }
 
-  async updateProposerPreparation(currentEpoch: Epoch, proposers: ProposerPreparationData[]){
+  async updateProposerPreparation(_epoch: Epoch, _proposers: ProposerPreparationData[]): Promise<void> {
+    return;
   }
 }

@@ -64,10 +64,10 @@ export type ApiPayloadAttributes = {
   suggestedFeeRecipient: DATA;
 };
 
-export type ProposerPreparationData={
+export type ProposerPreparationData = {
   validatorIndex: ValidatorIndex;
   feeRecipient: ExecutionAddress;
-}
+};
 /**
  * Execution engine represents an abstract protocol to interact with execution clients. Potential transports include:
  * - JSON RPC over network
@@ -113,5 +113,5 @@ export interface IExecutionEngine {
    */
   getPayload(payloadId: PayloadId): Promise<bellatrix.ExecutionPayload>;
 
-  updateProposerPreparation(currentEpoch: Epoch,proposers: ProposerPreparationData[]): Promise<void>
+  updateProposerPreparation(currentEpoch: Epoch, proposers: ProposerPreparationData[]): Promise<void>;
 }

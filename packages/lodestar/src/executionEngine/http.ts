@@ -1,5 +1,5 @@
 import {AbortSignal} from "@chainsafe/abort-controller";
-import {bellatrix, RootHex, Root, Epoch} from "@chainsafe/lodestar-types";
+import {bellatrix, RootHex, Root, Epoch, ExecutionAddress, ValidatorIndex} from "@chainsafe/lodestar-types";
 import {BYTES_PER_LOGS_BLOOM} from "@chainsafe/lodestar-params";
 import {fromHex} from "@chainsafe/lodestar-utils";
 
@@ -22,7 +22,7 @@ import {
   PayloadId,
   PayloadAttributes,
   ApiPayloadAttributes,
-  ProposerPreparationData
+  ProposerPreparationData,
 } from "./interface";
 
 export type ExecutionEngineHttpOpts = {
@@ -57,6 +57,7 @@ export const defaultExecutionEngineHttpOpts: ExecutionEngineHttpOpts = {
  * https://github.com/ethereum/execution-apis/blob/v1.0.0-alpha.1/src/engine/interop/specification.md
  */
 export class ExecutionEngineHttp implements IExecutionEngine {
+  readonly proposers = new Map<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>();
   private readonly rpc: IJsonRpcHttpClient;
 
   constructor(opts: ExecutionEngineHttpOpts, signal: AbortSignal, rpc?: IJsonRpcHttpClient) {
@@ -273,7 +274,10 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     return parseExecutionPayload(executionPayloadRpc);
   }
 
-  async updateProposerPreparation(currentEpoch: Epoch, proposers: ProposerPreparationData[]){
+  async updateProposerPreparation(epoch: Epoch, proposers: ProposerPreparationData[]): Promise<void> {
+    proposers.forEach(({validatorIndex, feeRecipient}) => {
+      this.proposers.set(validatorIndex, {epoch, feeRecipient});
+    });
   }
 }
 

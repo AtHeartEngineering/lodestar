@@ -14,6 +14,6 @@ export class ExecutionEngineDisabled implements IExecutionEngine {
   }
 
   async updateProposerPreparation(): Promise<never> {
-    throw Error("Execution engine disabled")
+    throw Error("Execution engine disabled");
   }
 }
