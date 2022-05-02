@@ -28,6 +28,7 @@ export class ExecutionEngineMock implements IExecutionEngine {
   headBlockRoot = ZERO_HASH_HEX;
   finalizedBlockRoot = ZERO_HASH_HEX;
   readonly proposers: MapDef<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>;
+  readonly payloadIdCache = new Map<string, PayloadId>();
 
   private knownBlocks = new Map<RootHex, bellatrix.ExecutionPayload>();
   private preparingPayloads = new Map<number, bellatrix.ExecutionPayload>();

@@ -21,7 +21,7 @@ import {ILogger} from "@chainsafe/lodestar-utils";
 import {IChainForkConfig} from "@chainsafe/lodestar-config";
 import {IMetrics} from "../../metrics";
 import {IEth1ForBlockProduction} from "../../eth1";
-import {IExecutionEngine} from "../../executionEngine";
+import {IExecutionEngine, PayloadId} from "../../executionEngine/interface";
 import {IBeaconDb} from "../../db";
 import {ZERO_HASH_HEX} from "../../constants";
 import {CheckpointStateCache, StateContextCache, toCheckpointHex} from "../stateCache";
@@ -31,6 +31,7 @@ import {LightClientServer} from "../lightClient";
 import {getCheckpointFromState} from "./utils/checkpoint";
 import {PendingEvents} from "./utils/pendingEvents";
 import {FullyVerifiedBlock} from "./types";
+import {prepareExecutionPayload} from "../factory/block/body";
 // import {ForkChoiceError, ForkChoiceErrorCode} from "@chainsafe/lodestar-fork-choice/lib/forkChoice/errors";
 
 /**
@@ -199,6 +200,8 @@ export async function importBlock(chain: ImportBlockModules, fullyVerifiedBlock:
   const oldHead = chain.forkChoice.getHead();
   chain.forkChoice.updateHead();
   const newHead = chain.forkChoice.getHead();
+  const currFinalizedEpoch = chain.forkChoice.getFinalizedCheckpoint().epoch;
+
   if (newHead.blockRoot !== oldHead.blockRoot) {
     // new head
     pendingEvents.push(ChainEvent.forkChoiceHead, newHead);
@@ -212,30 +215,31 @@ export async function importBlock(chain: ImportBlockModules, fullyVerifiedBlock:
     }
   }
 
-  // NOTE: forkChoice.fsStore.finalizedCheckpoint MUST only change is response to an onBlock event
-  // Notify execution layer of head and finalized updates
-  const currFinalizedEpoch = chain.forkChoice.getFinalizedCheckpoint().epoch;
-  if (newHead.blockRoot !== oldHead.blockRoot || currFinalizedEpoch !== prevFinalizedEpoch) {
-    /**
-     * On post BELLATRIX_EPOCH but pre TTD, blocks include empty execution payload with a zero block hash.
-     * The consensus clients must not send notifyForkchoiceUpdate before TTD since the execution client will error.
-     * So we must check that:
-     * - `headBlockHash !== null` -> Pre BELLATRIX_EPOCH
-     * - `headBlockHash !== ZERO_HASH` -> Pre TTD
-     */
-    const headBlockHash = chain.forkChoice.getHead().executionPayloadBlockHash;
-    /**
-     * After BELLATRIX_EPOCH and TTD it's okay to send a zero hash block hash for the finalized block. This will happen if
-     * the current finalized block does not contain any execution payload at all (pre MERGE_EPOCH) or if it contains a
-     * zero block hash (pre TTD)
-     */
-    const finalizedBlockHash = chain.forkChoice.getFinalizedBlock().executionPayloadBlockHash;
-    if (headBlockHash !== null && headBlockHash !== ZERO_HASH_HEX) {
-      chain.executionEngine.notifyForkchoiceUpdate(headBlockHash, finalizedBlockHash ?? ZERO_HASH_HEX).catch((e) => {
-        chain.logger.error("Error pushing notifyForkchoiceUpdate()", {headBlockHash, finalizedBlockHash}, e);
-      });
+  void issueNextProposerEngineFcU(chain, postState).then((payloadId) => {
+    // NOTE: forkChoice.fsStore.finalizedCheckpoint MUST only change is response to an onBlock event
+    // Notify execution layer of head and finalized updates
+    if (payloadId === null || newHead.blockRoot !== oldHead.blockRoot || currFinalizedEpoch !== prevFinalizedEpoch) {
+      /**
+       * On post BELLATRIX_EPOCH but pre TTD, blocks include empty execution payload with a zero block hash.
+       * The consensus clients must not send notifyForkchoiceUpdate before TTD since the execution client will error.
+       * So we must check that:
+       * - `headBlockHash !== null` -> Pre BELLATRIX_EPOCH
+       * - `headBlockHash !== ZERO_HASH` -> Pre TTD
+       */
+      const headBlockHash = chain.forkChoice.getHead().executionPayloadBlockHash ?? ZERO_HASH_HEX;
+      /**
+       * After BELLATRIX_EPOCH and TTD it's okay to send a zero hash block hash for the finalized block. This will happen if
+       * the current finalized block does not contain any execution payload at all (pre MERGE_EPOCH) or if it contains a
+       * zero block hash (pre TTD)
+       */
+      const finalizedBlockHash = chain.forkChoice.getFinalizedBlock().executionPayloadBlockHash ?? ZERO_HASH_HEX;
+      if (headBlockHash !== ZERO_HASH_HEX) {
+        chain.executionEngine.notifyForkchoiceUpdate(headBlockHash, finalizedBlockHash).catch((e) => {
+          chain.logger.error("Error pushing notifyForkchoiceUpdate()", {headBlockHash, finalizedBlockHash}, e);
+        });
+      }
     }
-  }
+  });
 
   // Emit ChainEvent.block event
   //
@@ -267,6 +271,28 @@ export async function importBlock(chain: ImportBlockModules, fullyVerifiedBlock:
   // Emit all events at once after fully completing importBlock()
   chain.emitter.emit(ChainEvent.block, block, postState);
   pendingEvents.emit();
+}
+
+export async function issueNextProposerEngineFcU(
+  chain: ImportBlockModules,
+  state: CachedBeaconStateAllForks
+): Promise<PayloadId | null> {
+  const prepareSlot = state.slot + 1;
+  // TODO: if prepareSlot is on boundary do the epoch processing
+  if (bellatrix.isBellatrixStateType(state) && prepareSlot% SLOTS_PER_EPOCH !== 0) {
+    try {
+      const proposerIndex = state.epochCtx.getBeaconProposer(prepareSlot);
+      const feeRecipient = chain.executionEngine.proposers.get(proposerIndex)?.feeRecipient;
+      if (feeRecipient) {
+        const finalizedBlockHash = chain.forkChoice.getFinalizedBlock().executionPayloadBlockHash ?? ZERO_HASH_HEX;
+        const payloadId = await prepareExecutionPayload(chain, finalizedBlockHash, state, feeRecipient);
+        return payloadId;
+      }
+    } catch (e) {
+      chain.logger.error("Error on issuing next proposer engine fcU", {}, e as Error);
+    }
+  }
+  return null;
 }
 
 /**

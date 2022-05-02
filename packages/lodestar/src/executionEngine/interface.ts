@@ -77,6 +77,7 @@ export type ProposerPreparationData = {
  */
 export interface IExecutionEngine {
   proposers: MapDef<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>;
+  payloadIdCache: Map<string, PayloadId>;
   /**
    * A state transition function which applies changes to the self.execution_state.
    * Returns ``True`` iff ``execution_payload`` is valid with respect to ``self.execution_state``.

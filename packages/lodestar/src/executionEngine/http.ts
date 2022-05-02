@@ -62,6 +62,7 @@ export const defaultExecutionEngineHttpOpts: ExecutionEngineHttpOpts = {
  */
 export class ExecutionEngineHttp implements IExecutionEngine {
   readonly proposers: MapDef<ValidatorIndex, {epoch: Epoch; feeRecipient: ExecutionAddress}>;
+  readonly payloadIdCache = new Map<string, PayloadId>();
   private readonly rpc: IJsonRpcHttpClient;
 
   constructor(opts: ExecutionEngineHttpOpts, signal: AbortSignal, rpc?: IJsonRpcHttpClient) {
@@ -231,8 +232,14 @@ export class ExecutionEngineHttp implements IExecutionEngine {
     switch (status) {
       case ExecutePayloadStatus.VALID:
         // if payloadAttributes are provided, a valid payloadId is expected
-        if (payloadAttributes && (!payloadId || payloadId === "0x")) {
-          throw Error(`Received invalid payloadId=${payloadId}`);
+        if (apiPayloadAttributes) {
+          if (!payloadId || payloadId === "0x") {
+            throw Error(`Received invalid payloadId=${payloadId}`);
+          }
+          this.payloadIdCache.set(
+            `${headBlockHashData}-${finalizedBlockHash}-${apiPayloadAttributes.prevRandao}-${apiPayloadAttributes.suggestedFeeRecipient}`,
+            payloadId
+          );
         }
         return payloadId !== "0x" ? payloadId : null;
 
