@@ -116,8 +116,9 @@ export function getGossipHandlers(modules: ValidatorFnsModules, options: GossipH
       // so `blsVerifyOnMainThread = true`: we want to verify signatures immediately without affecting the bls thread pool.
       // otherwise we can't utilize bls thread pool capacity and Gossip Job Wait Time can't be kept low consistently.
       // See https://github.com/ChainSafe/lodestar/issues/3792
+      // it's possible that the block is found by unknown block root attestations
       chain
-        .processBlock(signedBlock, {validProposerSignature: true, blsVerifyOnMainThread: true})
+        .processBlock(signedBlock, {validProposerSignature: true, blsVerifyOnMainThread: true, ignoreIfKnown: true})
         .then(() => {
           // Returns the delay between the start of `block.slot` and `current time`
           const delaySec = Date.now() / 1000 - (chain.genesisTime + slot * config.SECONDS_PER_SLOT);
@@ -146,7 +147,11 @@ export function getGossipHandlers(modules: ValidatorFnsModules, options: GossipH
     [GossipType.beacon_aggregate_and_proof]: async (signedAggregateAndProof, _topic, _peer, seenTimestampSec) => {
       let validationResult: {indexedAttestation: phase0.IndexedAttestation; committeeIndices: number[]};
       try {
-        validationResult = await validateGossipAggregateAndProofRetryUnknownRoot(chain, signedAggregateAndProof);
+        validationResult = await validateGossipAggregateAndProofRetryUnknownRoot(
+          modules,
+          signedAggregateAndProof,
+          _peer
+        );
       } catch (e) {
         if (e instanceof AttestationError && e.action === GossipAction.REJECT) {
           const archivedPath = chain.persistInvalidSszObject(
@@ -186,7 +191,7 @@ export function getGossipHandlers(modules: ValidatorFnsModules, options: GossipH
     [GossipType.beacon_attestation]: async (attestation, {subnet}, _peer, seenTimestampSec) => {
       let validationResult: {indexedAttestation: phase0.IndexedAttestation; subnet: number};
       try {
-        validationResult = await validateGossipAttestationRetryUnknownRoot(chain, attestation, subnet);
+        validationResult = await validateGossipAttestationRetryUnknownRoot(modules, attestation, subnet, _peer);
       } catch (e) {
         if (e instanceof AttestationError && e.action === GossipAction.REJECT) {
           const archivedPath = chain.persistInvalidSszObject(
@@ -319,8 +324,9 @@ export function getGossipHandlers(modules: ValidatorFnsModules, options: GossipH
  * both from gossip and the API. I also prevents having to catch and re-throw in multiple places.
  */
 async function validateGossipAggregateAndProofRetryUnknownRoot(
-  chain: IBeaconChain,
-  signedAggregateAndProof: phase0.SignedAggregateAndProof
+  {chain, network}: ValidatorFnsModules,
+  signedAggregateAndProof: phase0.SignedAggregateAndProof,
+  peerIdStr: string
 ): Promise<ReturnType<typeof validateGossipAggregateAndProof>> {
   let unknownBlockRootRetries = 0;
   // eslint-disable-next-line no-constant-condition
@@ -333,13 +339,11 @@ async function validateGossipAggregateAndProofRetryUnknownRoot(
         e.type.code === AttestationErrorCode.UNKNOWN_OR_PREFINALIZED_BEACON_BLOCK_ROOT
       ) {
         if (unknownBlockRootRetries++ < MAX_UNKNOWN_BLOCK_ROOT_RETRIES) {
-          // Trigger unknown block root search here
-
           const attestation = signedAggregateAndProof.message.aggregate;
-          const foundBlock = await chain.waitForBlockOfAttestation(
-            attestation.data.slot,
-            toHexString(attestation.data.beaconBlockRoot)
-          );
+          const blockHex = toHexString(attestation.data.beaconBlockRoot);
+          network.events.emit(NetworkEvent.unknownBlock, blockHex, peerIdStr);
+
+          const foundBlock = await chain.waitForBlockOfAttestation(attestation.data.slot, blockHex);
           // Returns true if the block was found on time. In that case, try to get it from the fork-choice again.
           // Otherwise, throw the error below.
           if (foundBlock) {
@@ -360,9 +364,10 @@ async function validateGossipAggregateAndProofRetryUnknownRoot(
  * both from gossip and the API. I also prevents having to catch and re-throw in multiple places.
  */
 async function validateGossipAttestationRetryUnknownRoot(
-  chain: IBeaconChain,
+  {chain, network}: ValidatorFnsModules,
   attestation: phase0.Attestation,
-  subnet: number | null
+  subnet: number | null,
+  peerIdStr: string
 ): Promise<ReturnType<typeof validateGossipAttestation>> {
   let unknownBlockRootRetries = 0;
   // eslint-disable-next-line no-constant-condition
@@ -375,12 +380,10 @@ async function validateGossipAttestationRetryUnknownRoot(
         e.type.code === AttestationErrorCode.UNKNOWN_OR_PREFINALIZED_BEACON_BLOCK_ROOT
       ) {
         if (unknownBlockRootRetries++ < MAX_UNKNOWN_BLOCK_ROOT_RETRIES) {
-          // Trigger unknown block root search here
+          const blockHex = toHexString(attestation.data.beaconBlockRoot);
+          network.events.emit(NetworkEvent.unknownBlock, blockHex, peerIdStr);
 
-          const foundBlock = await chain.waitForBlockOfAttestation(
-            attestation.data.slot,
-            toHexString(attestation.data.beaconBlockRoot)
-          );
+          const foundBlock = await chain.waitForBlockOfAttestation(attestation.data.slot, blockHex);
           // Returns true if the block was found on time. In that case, try to get it from the fork-choice again.
           // Otherwise, throw the error below.
           if (foundBlock) {
