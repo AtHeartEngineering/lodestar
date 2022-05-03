@@ -31,6 +31,7 @@ import {IBeaconChain} from "../../interface";
 import {PayloadId, IExecutionEngine} from "../../../executionEngine/interface";
 import {ZERO_HASH, ZERO_HASH_HEX} from "../../../constants";
 import {IEth1ForBlockProduction} from "../../../eth1";
+import {numToQuantity} from "../../../eth1/provider/utils";
 
 export async function assembleBody(
   chain: IBeaconChain,
@@ -172,10 +173,11 @@ export async function prepareExecutionPayload(
   const timestamp = computeTimeAtSlot(chain.config, state.slot, state.genesisTime);
   const prevRandao = getRandaoMix(state, state.epochCtx.epoch);
 
+  const payloadIdKey = `${toHex(parentHash)}-${finalizedBlockHash}-${numToQuantity(timestamp)}-${toHex(
+    prevRandao
+  )}-${toHex(suggestedFeeRecipient)}`;
   const payloadId =
-    chain.executionEngine.payloadIdCache.get(
-      `${toHex(parentHash)}-${finalizedBlockHash}-${toHex(prevRandao)}-${toHex(suggestedFeeRecipient)}`
-    ) ??
+    chain.executionEngine.payloadIdCache.get(payloadIdKey) ??
     (await chain.executionEngine.notifyForkchoiceUpdate(parentHash, finalizedBlockHash, {
       timestamp,
       prevRandao,

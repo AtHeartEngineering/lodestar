@@ -1,6 +1,5 @@
 import {SLOTS_PER_EPOCH} from "@chainsafe/lodestar-params";
 import {toHexString} from "@chainsafe/ssz";
-import {allForks} from "@chainsafe/lodestar-types";
 import {
   CachedBeaconStateAllForks,
   CachedBeaconStateAltair,
@@ -9,6 +8,7 @@ import {
   bellatrix,
   altair,
   computeEpochAtSlot,
+  allForks,
 } from "@chainsafe/lodestar-beacon-state-transition";
 import {
   IForkChoice,
@@ -217,8 +217,10 @@ export async function importBlock(chain: ImportBlockModules, fullyVerifiedBlock:
 
   void issueNextProposerEngineFcU(chain, postState).then((payloadId) => {
     // NOTE: forkChoice.fsStore.finalizedCheckpoint MUST only change is response to an onBlock event
-    // Notify execution layer of head and finalized updates
-    if (payloadId === null || newHead.blockRoot !== oldHead.blockRoot || currFinalizedEpoch !== prevFinalizedEpoch) {
+    // Notify execution layer of head and finalized updates only if has already
+    // not been done via payloadId generation. But even if this fcU follows the
+    // payloadId one, there is no harm as the ELs will just ignore it.
+    if (payloadId === null && (newHead.blockRoot !== oldHead.blockRoot || currFinalizedEpoch !== prevFinalizedEpoch)) {
       /**
        * On post BELLATRIX_EPOCH but pre TTD, blocks include empty execution payload with a zero block hash.
        * The consensus clients must not send notifyForkchoiceUpdate before TTD since the execution client will error.
@@ -278,15 +280,19 @@ export async function issueNextProposerEngineFcU(
   state: CachedBeaconStateAllForks
 ): Promise<PayloadId | null> {
   const prepareSlot = state.slot + 1;
-  // TODO: if prepareSlot is on boundary do the epoch processing
-  if (bellatrix.isBellatrixStateType(state) && prepareSlot% SLOTS_PER_EPOCH !== 0) {
+  const prepareState = allForks.processSlots(state, prepareSlot);
+  // TODO wait till third/last interval of the slot to actual send an fcU
+  // so that any head change is accomodated before that. However this could
+  // be optimized if the last block receieved is already head. This will be
+  // especially meaningful for mev boost which might have more delays
+  // because of how protocol is designed
+  if (bellatrix.isBellatrixStateType(prepareState)) {
     try {
-      const proposerIndex = state.epochCtx.getBeaconProposer(prepareSlot);
+      const proposerIndex = prepareState.epochCtx.getBeaconProposer(prepareSlot);
       const feeRecipient = chain.executionEngine.proposers.get(proposerIndex)?.feeRecipient;
       if (feeRecipient) {
         const finalizedBlockHash = chain.forkChoice.getFinalizedBlock().executionPayloadBlockHash ?? ZERO_HASH_HEX;
-        const payloadId = await prepareExecutionPayload(chain, finalizedBlockHash, state, feeRecipient);
-        return payloadId;
+        return prepareExecutionPayload(chain, finalizedBlockHash, prepareState, feeRecipient);
       }
     } catch (e) {
       chain.logger.error("Error on issuing next proposer engine fcU", {}, e as Error);

@@ -236,10 +236,10 @@ export class ExecutionEngineHttp implements IExecutionEngine {
           if (!payloadId || payloadId === "0x") {
             throw Error(`Received invalid payloadId=${payloadId}`);
           }
-          this.payloadIdCache.set(
-            `${headBlockHashData}-${finalizedBlockHash}-${apiPayloadAttributes.prevRandao}-${apiPayloadAttributes.suggestedFeeRecipient}`,
-            payloadId
-          );
+
+          const payloadIdKey = `${headBlockHashData}-${finalizedBlockHash}-${apiPayloadAttributes.timestamp}-${apiPayloadAttributes.prevRandao}-${apiPayloadAttributes.suggestedFeeRecipient}`;
+
+          this.payloadIdCache.set(payloadIdKey, payloadId);
         }
         return payloadId !== "0x" ? payloadId : null;
 
