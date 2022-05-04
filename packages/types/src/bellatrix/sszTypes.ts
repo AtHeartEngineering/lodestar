@@ -11,7 +11,17 @@ import {
   SLOTS_PER_HISTORICAL_ROOT,
 } from "@chainsafe/lodestar-params";
 
-const {Bytes20, Bytes32, UintNum64, Slot, ValidatorIndex, Root, BLSSignature, UintBn256: Uint256} = primitiveSsz;
+const {
+  Bytes20,
+  Bytes32,
+  UintNum64,
+  Slot,
+  ValidatorIndex,
+  Root,
+  BLSSignature,
+  UintBn256: Uint256,
+  BLSPubkey,
+} = primitiveSsz;
 
 /**
  * ByteList[MAX_BYTES_PER_TRANSACTION]
@@ -69,6 +79,14 @@ export const BeaconBlockBody = new ContainerType(
   {typeName: "BeaconBlockBody", jsonCase: "eth2", cachePermanentRootStruct: true}
 );
 
+export const BlindedBeaconBlockBody = new ContainerType(
+  {
+    ...altairSsz.BeaconBlockBody.fields,
+    executionPayloadHeader: ExecutionPayloadHeader,
+  },
+  {typeName: "BlindedBeaconBlockBody", jsonCase: "eth2", cachePermanentRootStruct: true}
+);
+
 export const BeaconBlock = new ContainerType(
   {
     slot: Slot,
@@ -79,6 +97,18 @@ export const BeaconBlock = new ContainerType(
     body: BeaconBlockBody,
   },
   {typeName: "BeaconBlock", jsonCase: "eth2", cachePermanentRootStruct: true}
+);
+
+export const BlindedBeaconBlock = new ContainerType(
+  {
+    slot: Slot,
+    proposerIndex: ValidatorIndex,
+    // Reclare expandedType() with altair block and altair state
+    parentRoot: Root,
+    stateRoot: Root,
+    body: BlindedBeaconBlockBody,
+  },
+  {typeName: "BlindedBeaconBlock", jsonCase: "eth2", cachePermanentRootStruct: true}
 );
 
 export const SignedBeaconBlock = new ContainerType(
@@ -150,4 +180,22 @@ export const BeaconState = new ContainerType(
     latestExecutionPayloadHeader: ExecutionPayloadHeader, // [New in Merge]
   },
   {typeName: "BeaconState", jsonCase: "eth2"}
+);
+
+export const ValidatorRegistrationV1 = new ContainerType(
+  {
+    feeRecipient: Bytes20,
+    gasLimit: UintNum64,
+    timestamp: UintNum64,
+    pubkey: BLSPubkey,
+  },
+  {typeName: "ValidatorRegistrationV1", jsonCase: "eth2"}
+);
+
+export const BuilderBidV1 = new ContainerType(
+  {
+    value: Uint256,
+    pubkey: BLSPubkey,
+  },
+  {typeName: "BuilderBidV1", jsonCase: "eth2"}
 );
