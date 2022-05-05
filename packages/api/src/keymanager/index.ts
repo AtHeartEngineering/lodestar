@@ -4,7 +4,18 @@ import {IHttpClient} from "../client/utils";
 import {Api} from "./routes";
 import * as keymanager from "./client";
 
-export {ImportStatus, DeletionStatus, KeystoreStr, SlashingProtectionData, PubkeyHex, Api} from "./routes";
+export {
+  ImportStatus,
+  DeletionStatus,
+  ImportRemoteKeyStatus,
+  DeleteRemoteKeyStatus,
+  ResponseStatus,
+  SignerDefinition,
+  KeystoreStr,
+  SlashingProtectionData,
+  PubkeyHex,
+  Api,
+} from "./routes";
 
 /**
  * REST HTTP client for all keymanager routes

@@ -91,6 +91,10 @@ export class ValidatorStore {
     return this.validators.get(pubkeyHex);
   }
 
+  getSigners(): Signer[] {
+    return Array.from(this.validators.values());
+  }
+
   removeSigner(pubkeyHex: PubkeyHex): boolean {
     return this.validators.delete(pubkeyHex);
   }

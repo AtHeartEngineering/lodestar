@@ -13,6 +13,7 @@ import {getBeaconPaths} from "../beacon/paths";
 import {getValidatorPaths} from "./paths";
 import {IValidatorCliArgs, validatorMetricsDefaultOptions} from "./options";
 import {getLocalSecretKeys, getExternalSigners, groupExternalSignersByUrl} from "./keys";
+import {SignerDefinition} from "@chainsafe/lodestar-api/keymanager";
 
 /**
  * Runs a validator client.
@@ -77,7 +78,29 @@ export async function validatorHandler(args: IValidatorCliArgs & IGlobalArgs): P
         });
       }
 
-      onGracefulShutdownCbs.push(() => unlockSecretKeys?.());
+      if (unlockSecretKeys) {
+        onGracefulShutdownCbs.push(() => unlockSecretKeys());
+      }
+    }
+
+    const remoteSigners: SignerDefinition[] = readRemoteSignerDefinitions();
+    if (remoteSigners.length > 0) {
+      logger.info(`Using ${secretKeys.length} external keys from disk`);
+      for (const remoteSigner of remoteSigners) {
+        signers.push({
+          type: SignerType.Remote,
+          pubkeyHex: remoteSigner.pubkey,
+          externalSignerUrl: remoteSigner.url,
+        });
+      }
+
+      // Log pubkeys for auditing, grouped by signer URL
+      for (const {externalSignerUrl, pubkeysHex} of groupExternalSignersByUrl(remoteSigners)) {
+        logger.info(`External signer URL: ${externalSignerUrl}`);
+        for (const pubkeyHex of pubkeysHex) {
+          logger.info(pubkeyHex);
+        }
+      }
     }
   }
 
