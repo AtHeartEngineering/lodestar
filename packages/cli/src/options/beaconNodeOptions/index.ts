@@ -5,6 +5,7 @@ import * as api from "./api";
 import * as chain from "./chain";
 import * as eth1 from "./eth1";
 import * as execution from "./execution";
+import * as builder from "./builder";
 import * as logger from "./logger";
 import * as metrics from "./metrics";
 import * as network from "./network";
@@ -14,6 +15,7 @@ export type IBeaconNodeArgs = api.IApiArgs &
   chain.IChainArgs &
   eth1.IEth1Args &
   execution.ExecutionEngineArgs &
+  builder.ExecutionBuilderArgs &
   logger.ILoggerArgs &
   metrics.IMetricsArgs &
   network.INetworkArgs &
@@ -27,6 +29,7 @@ export function parseBeaconNodeArgs(args: IBeaconNodeArgs): RecursivePartial<IBe
     // db: {},
     eth1: eth1.parseArgs(args),
     executionEngine: execution.parseArgs(args),
+    executionBuilder: builder.parseArgs(args),
     logger: logger.parseArgs(args),
     metrics: metrics.parseArgs(args),
     network: network.parseArgs(args),
@@ -39,6 +42,7 @@ export const beaconNodeOptions = {
   ...chain.options,
   ...eth1.options,
   ...execution.options,
+  ...builder.options,
   ...logger.options,
   ...metrics.options,
   ...network.options,

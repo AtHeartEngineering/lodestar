@@ -8,9 +8,16 @@ import {IJsonRpcHttpClient} from "../eth1/provider/jsonRpcHttpClient";
 import {IExecutionBuilder} from "./interface";
 
 export type ExecutionBuilderHttpOpts = {
+  enabled: boolean;
   urls: string[];
   timeout?: number;
   jwtSecretHex?: string;
+};
+
+export const defaultExecutionBuilderHttpOpts: ExecutionBuilderHttpOpts = {
+  enabled: false,
+  urls: ["http://localhost:8661"],
+  timeout: 12000,
 };
 
 export class ExecutionBuilderHttp implements IExecutionBuilder {

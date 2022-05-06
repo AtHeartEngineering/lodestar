@@ -10,7 +10,13 @@ import {defaultLoggerOptions, IBeaconLoggerOptions} from "./loggerOptions";
 import {defaultMetricsOptions, MetricsOptions} from "../metrics/options";
 import {defaultNetworkOptions, INetworkOptions} from "../network/options";
 import {defaultSyncOptions, SyncOptions} from "../sync/options";
-import {defaultExecutionEngineOpts, ExecutionEngineOpts, defaultDefaultSuggestedFeeRecipient} from "../executionEngine";
+import {
+  defaultExecutionEngineOpts,
+  ExecutionEngineOpts,
+  defaultDefaultSuggestedFeeRecipient,
+  ExecutionBuilderOpts,
+  defaultExecutionBuilderOpts,
+} from "../executionEngine";
 // Re-export so the CLI doesn't need to depend on lodestar-api
 export {allNamespaces} from "../api/rest/index";
 export {defaultDefaultSuggestedFeeRecipient};
@@ -21,6 +27,7 @@ export interface IBeaconNodeOptions {
   db: IDatabaseOptions;
   eth1: Eth1Options;
   executionEngine: ExecutionEngineOpts;
+  executionBuilder: ExecutionBuilderOpts;
   logger: IBeaconLoggerOptions;
   metrics: MetricsOptions;
   network: INetworkOptions;
@@ -33,6 +40,7 @@ export const defaultOptions: IBeaconNodeOptions = {
   db: defaultDbOptions,
   eth1: defaultEth1Options,
   executionEngine: defaultExecutionEngineOpts,
+  executionBuilder: defaultExecutionBuilderOpts,
   logger: defaultLoggerOptions,
   metrics: defaultMetricsOptions,
   network: defaultNetworkOptions,

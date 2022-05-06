@@ -19,7 +19,7 @@ import {BackfillSync} from "../sync/backfill";
 import {BeaconChain, IBeaconChain, initBeaconMetrics} from "../chain";
 import {createMetrics, IMetrics, HttpMetricsServer} from "../metrics";
 import {getApi, RestApi} from "../api";
-import {initializeExecutionEngine} from "../executionEngine";
+import {initializeExecutionEngine, initializeExecutionBuilder} from "../executionEngine";
 import {initializeEth1ForBlockProduction} from "../eth1";
 import {IBeaconNodeOptions} from "./options";
 import {runNodeNotifier} from "./notifier";
@@ -147,6 +147,9 @@ export class BeaconNode {
         anchorState
       ),
       executionEngine: initializeExecutionEngine(opts.executionEngine, signal),
+      executionBuilder: opts.executionBuilder.enabled
+        ? initializeExecutionBuilder(opts.executionBuilder, signal)
+        : undefined,
     });
 
     // Load persisted data from disk to in-memory caches
