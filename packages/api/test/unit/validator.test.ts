@@ -75,7 +75,15 @@ describe("validator", () => {
       res: undefined,
     },
     prepareBeaconProposer: {
-      args: [[{validatorIndex: 1, feeRecipient: new Uint8Array(20)}]],
+      args: [
+        [
+          {
+            validatorIndex: 1,
+            feeRecipient: new Uint8Array(20),
+            validatorRegistration: {timestamp: 10000, gasLimit: 1000, signature: new Uint8Array(96)},
+          },
+        ],
+      ],
       res: undefined,
     },
   });
