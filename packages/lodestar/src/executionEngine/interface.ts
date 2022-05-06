@@ -118,3 +118,7 @@ export interface IExecutionEngine {
 
   updateProposerPreparation(currentEpoch: Epoch, proposers: ProposerPreparationData[]): Promise<void>;
 }
+
+export interface IExecutionBuilder {
+  registerValidator(validatorRegistation: bellatrix.SignedValidatorRegistrationV1): Promise<void>;
+}
