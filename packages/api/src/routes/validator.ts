@@ -48,6 +48,11 @@ export type SyncCommitteeSubscription = {
 export type ProposerPreparationData = {
   validatorIndex: ValidatorIndex;
   feeRecipient: ExecutionAddress;
+  validatorRegistration: {
+    timestamp: UintNum64;
+    gasLimit: UintNum64;
+    signature: BLSSignature;
+  };
 };
 
 export type ProposerDuty = {
@@ -268,6 +273,14 @@ export function getReqSerializers(): ReqSerializers<Api, ReqTypes> {
     {
       validatorIndex: ssz.ValidatorIndex,
       feeRecipient: ssz.ExecutionAddress,
+      validatorRegistration: new ContainerType(
+        {
+          timestamp: ssz.UintNum64,
+          gasLimit: ssz.UintNum64,
+          signature: ssz.BLSSignature,
+        },
+        {jsonCase: "eth2"}
+      ),
     },
     {jsonCase: "eth2"}
   );

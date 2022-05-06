@@ -1,5 +1,7 @@
-import {ValidatorIndex, ExecutionAddress, Epoch} from "@chainsafe/lodestar-types";
+import {ValidatorIndex, ExecutionAddress, BLSSignature, Slot, UintNum64} from "@chainsafe/lodestar-types";
 import {Api} from "@chainsafe/lodestar-api";
+import {IBeaconConfig} from "@chainsafe/lodestar-config";
+import {fromHexString} from "@chainsafe/ssz";
 
 import {ValidatorStore} from "./validatorStore";
 import {IndicesService} from "./indices";
@@ -9,6 +11,11 @@ import {Metrics} from "../metrics";
 type ProposerPreparationData = {
   validatorIndex: ValidatorIndex;
   feeRecipient: ExecutionAddress;
+  validatorRegistration: {
+    timestamp: UintNum64;
+    gasLimit: UintNum64;
+    signature: BLSSignature;
+  };
 };
 
 /**
@@ -18,6 +25,7 @@ type ProposerPreparationData = {
  */
 export class PrepareBeaconProposerService {
   constructor(
+    private readonly config: IBeaconConfig,
     private readonly logger: ILoggerVc,
     private readonly api: Api,
     private clock: IClock,
@@ -29,26 +37,46 @@ export class PrepareBeaconProposerService {
     clock.runEverySlot(this.prepareBeaconProposer);
   }
 
-  private prepareBeaconProposer = async (epoch: Epoch): Promise<void> => {
+  private prepareBeaconProposer = async (slot: Slot): Promise<void> => {
     await Promise.all([
       // Run prepareBeaconProposer immediately for all known local indices
-      this.api.validator
-        .prepareBeaconProposer(this.getProposerData(this.indicesService.getAllLocalIndices()))
+      this.getProposerData(slot, this.indicesService.getAllLocalIndices())
+        .then((proposerData) => this.api.validator.prepareBeaconProposer(proposerData))
         .catch((e: Error) => {
-          this.logger.error("Error on prepareBeaconProposer", {epoch}, e);
+          this.logger.error("Error on prepareBeaconProposer", {slot}, e);
         }),
 
       // At the same time fetch any remaining unknown validator indices, then poll duties for those newIndices only
       this.indicesService
         .pollValidatorIndices()
-        .then((newIndices) => this.api.validator.prepareBeaconProposer(this.getProposerData(newIndices)))
+        .then((newIndices) => this.getProposerData(slot, newIndices))
+        .then((proposerData) => this.api.validator.prepareBeaconProposer(proposerData))
         .catch((e: Error) => {
-          this.logger.error("Error on poll indices and prepareBeaconProposer", {epoch}, e);
+          this.logger.error("Error on poll indices and prepareBeaconProposer", {slot}, e);
         }),
     ]);
   };
 
-  private getProposerData(indices: number[]): ProposerPreparationData[] {
-    return indices.map((validatorIndex) => ({validatorIndex, feeRecipient: this.defaultSuggestedFeeRecipient}));
-  }
+  private getProposerData = async (slot: Slot, indices: number[]): Promise<ProposerPreparationData[]> => {
+    const proposerData: ProposerPreparationData[] = [];
+    for (const validatorIndex of indices) {
+      const pubkeyHex = this.indicesService.index2pubkey.get(validatorIndex);
+      if (!pubkeyHex) throw Error(`Pubkey lookup failure for validatorIndex=${validatorIndex}`);
+      const feeRecipient = this.defaultSuggestedFeeRecipient;
+      const gasLimit = 10000;
+      const signedValidatorRegistration = await this.validatorStore.signValidatorRegistration(
+        fromHexString(pubkeyHex),
+        feeRecipient,
+        gasLimit,
+        slot
+      );
+      const validatorRegistration = {
+        timestamp: signedValidatorRegistration.message.timestamp,
+        gasLimit,
+        signature: signedValidatorRegistration.signature,
+      };
+      proposerData.push({validatorIndex, feeRecipient, validatorRegistration});
+    }
+    return proposerData;
+  };
 }

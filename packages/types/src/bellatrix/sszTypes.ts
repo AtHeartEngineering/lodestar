@@ -192,6 +192,14 @@ export const ValidatorRegistrationV1 = new ContainerType(
   {typeName: "ValidatorRegistrationV1", jsonCase: "eth2"}
 );
 
+export const SignedValidatorRegistrationV1 = new ContainerType(
+  {
+    message: ValidatorRegistrationV1,
+    signature: BLSSignature,
+  },
+  {typeName: "SignedValidatorRegistrationV1", jsonCase: "eth2"}
+);
+
 export const BuilderBidV1 = new ContainerType(
   {
     value: Uint256,

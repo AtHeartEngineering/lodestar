@@ -9,3 +9,5 @@ export type BeaconBlock = ValueOf<typeof ssz.BeaconBlock>;
 export type SignedBeaconBlock = ValueOf<typeof ssz.SignedBeaconBlock>;
 export type BeaconState = ValueOf<typeof ssz.BeaconState>;
 export type PowBlock = ValueOf<typeof ssz.PowBlock>;
+export type ValidatorRegistrationV1 = ValueOf<typeof ssz.ValidatorRegistrationV1>;
+export type SignedValidatorRegistrationV1 = ValueOf<typeof ssz.SignedValidatorRegistrationV1>;

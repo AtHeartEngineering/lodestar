@@ -120,6 +120,7 @@ export class Validator {
 
     this.prepareBeaconProposerService = defaultSuggestedFeeRecipient
       ? new PrepareBeaconProposerService(
+          config,
           loggerVc,
           api,
           clock,

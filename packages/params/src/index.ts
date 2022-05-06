@@ -115,6 +115,10 @@ export const DOMAIN_AGGREGATE_AND_PROOF = Uint8Array.from([6, 0, 0, 0]);
 export const DOMAIN_SYNC_COMMITTEE = Uint8Array.from([7, 0, 0, 0]);
 export const DOMAIN_SYNC_COMMITTEE_SELECTION_PROOF = Uint8Array.from([8, 0, 0, 0]);
 export const DOMAIN_CONTRIBUTION_AND_PROOF = Uint8Array.from([9, 0, 0, 0]);
+// TODO: this domain needs to be updated
+// application specific domains:
+// https://github.com/ethereum/consensus-specs/pull/2884
+export const DOMAIN_APPLICATION_MEV_BOOST = Uint8Array.from([10, 0, 0, 1]);
 
 // Participation flag indices
 

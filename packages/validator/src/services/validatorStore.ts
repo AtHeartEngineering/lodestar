@@ -14,6 +14,7 @@ import {
   DOMAIN_SYNC_COMMITTEE,
   DOMAIN_SYNC_COMMITTEE_SELECTION_PROOF,
   DOMAIN_VOLUNTARY_EXIT,
+  DOMAIN_APPLICATION_MEV_BOOST,
 } from "@chainsafe/lodestar-params";
 import {SecretKey} from "@chainsafe/bls";
 import {
@@ -23,10 +24,12 @@ import {
   BLSSignature,
   Epoch,
   phase0,
+  bellatrix,
   Root,
   Slot,
   ValidatorIndex,
   ssz,
+  ExecutionAddress,
 } from "@chainsafe/lodestar-types";
 import {BitArray, fromHexString, toHexString} from "@chainsafe/ssz";
 import {routes} from "@chainsafe/lodestar-api";
@@ -280,6 +283,27 @@ export class ValidatorStore {
 
     return {
       message: voluntaryExit,
+      signature: await this.getSignature(pubkey, signingRoot),
+    };
+  }
+
+  async signValidatorRegistration(
+    pubkey: BLSPubkey,
+    feeRecipient: ExecutionAddress,
+    gasLimit: number,
+    slot: Slot
+  ): Promise<bellatrix.SignedValidatorRegistrationV1> {
+    const domain = this.config.getDomain(DOMAIN_APPLICATION_MEV_BOOST, slot);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const validatorRegistation: bellatrix.ValidatorRegistrationV1 = {
+      feeRecipient,
+      gasLimit: 10000,
+      timestamp,
+      pubkey,
+    };
+    const signingRoot = computeSigningRoot(ssz.bellatrix.ValidatorRegistrationV1, validatorRegistation, domain);
+    return {
+      message: validatorRegistation,
       signature: await this.getSignature(pubkey, signingRoot),
     };
   }
