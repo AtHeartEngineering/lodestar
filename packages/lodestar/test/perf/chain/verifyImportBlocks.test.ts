@@ -68,7 +68,7 @@ describe("verify+import blocks - range sync perf test", () => {
     id: `altair verifyImport ${network}_s${startSlot}:${slotCount}`,
     minRuns: 5,
     maxRuns: Infinity,
-    maxMs: Infinity,
+    maxMs: 2 * 60 * 1000,
     timeoutBench: 10 * 60 * 1000,
     beforeEach: () => {
       const state = stateOg.value.clone();

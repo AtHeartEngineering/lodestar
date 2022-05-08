@@ -3,7 +3,6 @@ import {
   computeStartSlotAtEpoch,
   allForks,
   bellatrix,
-  ISignatureSet,
   computeEpochAtSlot,
 } from "@chainsafe/lodestar-beacon-state-transition";
 import {toHexString} from "@chainsafe/ssz";
@@ -273,24 +272,37 @@ export async function verifyBlocksSignatures(
   preState0: CachedBeaconStateAllForks,
   partiallyVerifiedBlocks: PartiallyVerifiedBlock[]
 ): Promise<void> {
-  const signatureSets: ISignatureSet[] = [];
+  const isValidPromises: Promise<boolean>[] = [];
 
   // Verifies signatures after running state transition, so all SyncCommittee signed roots are known at this point.
   // We must ensure block.slot <= state.slot before running getAllBlockSignatureSets().
   // NOTE: If in the future multiple blocks signatures are verified at once, all blocks must be in the same epoch
   // so the attester and proposer shufflings are correct.
-  for (const {block, validProposerSignature} of partiallyVerifiedBlocks) {
+  for (let i = 0; i < partiallyVerifiedBlocks.length; i++) {
+    const {block, validProposerSignature} = partiallyVerifiedBlocks[i];
     const signatureSetsBlock = allForks.getBlockSignatureSets(preState0, block, {
       skipProposerSignature: validProposerSignature,
     });
 
-    // TODO: Concat arrays?
-    signatureSets.push(...signatureSetsBlock);
+    isValidPromises.push(chain.bls.verifySignatureSets(signatureSetsBlock));
+
+    // getBlockSignatureSets() takes 45ms in benchmarks for 2022Q2 mainnet blocks (100 sigs). When syncing a 32 blocks
+    // segments it will block the event loop for 1400 ms, which is too much. This sleep will allow the event loop to
+    // yield, which will cause one block's state transition to run. However, the tradeoff is okay and doesn't slow sync
+    if ((i + 1) % 8 === 0) {
+      await sleep(0);
+    }
   }
 
   // TODO: Submit each block's signature as a separate job to track which blocks are valid
-  if (signatureSets.length > 0 && !(await chain.bls.verifySignatureSets(signatureSets))) {
-    throw new BlockError(partiallyVerifiedBlocks[0].block, {code: BlockErrorCode.INVALID_SIGNATURE, state: preState0});
+  if (isValidPromises.length > 0) {
+    const isValid = (await Promise.all(isValidPromises)).every((isValid) => isValid === true);
+    if (!isValid) {
+      throw new BlockError(partiallyVerifiedBlocks[0].block, {
+        code: BlockErrorCode.INVALID_SIGNATURE,
+        state: preState0,
+      });
+    }
   }
 }
 
