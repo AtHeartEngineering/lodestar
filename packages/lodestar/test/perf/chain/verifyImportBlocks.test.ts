@@ -20,7 +20,8 @@ const network = "mainnet";
 // Using `computeStartSlotAtEpoch(...) - 1` will cause the chain to initialize with a state that's not the checkpoint
 // state, so processing the first block of the epoch will cause error `BLOCK_ERROR_WOULD_REVERT_FINALIZED_SLOT`
 const startSlot = computeStartSlotAtEpoch(117713);
-const slotCount = 1 * SLOTS_PER_EPOCH;
+// All blocks must be strictly in the same epoch, so -1 to prevent adding the first block of the next epoch
+const slotCount = 1 * SLOTS_PER_EPOCH - 1;
 const endSlot = startSlot + slotCount;
 const missedSlots = new Set<number>([]);
 
