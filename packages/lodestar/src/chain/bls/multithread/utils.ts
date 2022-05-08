@@ -31,5 +31,5 @@ export function getDefaultPoolSize(): number {
     return require("node:os").cpus().length;
   }
 
-  return 8;
+  return 4;
 }
