@@ -24,7 +24,7 @@ export {
 } from "./types";
 
 // Main state caches
-export {createCachedBeaconState, BeaconStateCache} from "./cache/stateCache";
+export {createCachedBeaconState, BeaconStateCache, isCachedBeaconState} from "./cache/stateCache";
 export {EpochContext, EpochContextImmutableData, createEmptyEpochContextImmutableData} from "./cache/epochContext";
 export {EpochProcess, beforeProcessEpoch} from "./cache/epochProcess";
 

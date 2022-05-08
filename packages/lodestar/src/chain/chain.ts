@@ -8,6 +8,7 @@ import {
   CachedBeaconStateAllForks,
   computeStartSlotAtEpoch,
   createCachedBeaconState,
+  isCachedBeaconState,
   Index2PubkeyCache,
   PubkeyIndexMap,
 } from "@chainsafe/lodestar-beacon-state-transition";
@@ -139,16 +140,21 @@ export class BeaconChain implements IBeaconChain {
     const stateCache = new StateContextCache({metrics});
     const checkpointStateCache = new CheckpointStateCache({metrics});
 
-    // Initialize single global instance of state caches
-    this.pubkey2index = new PubkeyIndexMap();
-    this.index2pubkey = [];
+    // anchorState may already by a CachedBeaconState. If so, don't create the cache again,
+    // since deserializing all pubkeys takes ~30 seconds for 350k keys (mainnet 2022Q2).
+    const cachedState = isCachedBeaconState(anchorState)
+      ? anchorState
+      : createCachedBeaconState(anchorState, {
+          config,
+          pubkey2index: new PubkeyIndexMap(),
+          index2pubkey: [],
+        });
+
+    // Persist single global instance of state caches
+    this.pubkey2index = cachedState.epochCtx.pubkey2index;
+    this.index2pubkey = cachedState.epochCtx.index2pubkey;
 
     // Restore state caches
-    const cachedState = createCachedBeaconState(anchorState, {
-      config,
-      pubkey2index: this.pubkey2index,
-      index2pubkey: this.index2pubkey,
-    });
     const {checkpoint} = computeAnchorCheckpoint(config, anchorState);
     stateCache.add(cachedState);
     checkpointStateCache.add(checkpoint, cachedState);
