@@ -10,8 +10,8 @@ export const MAX_BATCH_DOWNLOAD_ATTEMPTS = 5;
 /** Consider batch faulty after downloading and processing this number of times */
 export const MAX_BATCH_PROCESSING_ATTEMPTS = 3;
 
-/** Batch range excludes the first block of the epoch. @see Batch */
-export const BATCH_SLOT_OFFSET = 1;
+/** Batch range aligned to the first block of the epoch. @see Batch */
+export const BATCH_SLOT_OFFSET = 0;
 
 /** First epoch to allow to start gossip  */
 export const MIN_EPOCH_TO_START_GOSSIP = -1;
@@ -24,13 +24,13 @@ export const MIN_EPOCH_TO_START_GOSSIP = -1;
  * case the responder will fill the response up to the max request size, assuming they have the
  * bandwidth to do so.
  */
-export const EPOCHS_PER_BATCH = 2;
+export const EPOCHS_PER_BATCH = 1;
 
 /**
  * The maximum number of batches to queue before requesting more.
  * In good network conditions downloading batches is much faster than processing them
- * A number > 5 results in wasted progress when the chain completes syncing
+ * A number > 10 epochs worth results in wasted progress when the chain completes syncing
  *
  * TODO: When switching branches usually all batches in AwaitingProcessing are dropped, could it be optimized?
  */
-export const BATCH_BUFFER_SIZE = 5;
+export const BATCH_BUFFER_SIZE = 10;

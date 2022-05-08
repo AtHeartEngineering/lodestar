@@ -54,14 +54,16 @@ export type BatchMetadata = {
 };
 
 /**
- * Batches are downloaded excluding the first block of the epoch assuming it has already been
- * downloaded.
+ * Batches are downloaded at the first block of the epoch.
  *
  * For example:
  *
  * Epoch boundary |                                   |
  *  ... | 30 | 31 | 32 | 33 | 34 | ... | 61 | 62 | 63 | 64 | 65 |
- *       Batch 1       |              Batch 2              |  Batch 3
+ *     Batch 1    |              Batch 2              |  Batch 3
+ *
+ * Note: this diverges with previous implementation, where Batch for epoch N included the first slot of epoch N + 1.
+ * The effects of this change have not been tested yet.
  */
 export class Batch {
   readonly startEpoch: Epoch;

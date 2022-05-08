@@ -1,6 +1,6 @@
 import {CachedBeaconStateAllForks} from "@chainsafe/lodestar-beacon-state-transition";
-import {IProtoBlock, ExecutionStatus} from "@chainsafe/lodestar-fork-choice";
-import {allForks} from "@chainsafe/lodestar-types";
+import {ExecutionStatus} from "@chainsafe/lodestar-fork-choice";
+import {allForks, Slot} from "@chainsafe/lodestar-types";
 
 export type FullyVerifiedBlockFlags = {
   /**
@@ -50,7 +50,7 @@ export type PartiallyVerifiedBlockFlags = FullyVerifiedBlockFlags & {
 export type FullyVerifiedBlock = FullyVerifiedBlockFlags & {
   block: allForks.SignedBeaconBlock;
   postState: CachedBeaconStateAllForks;
-  parentBlock: IProtoBlock;
+  parentBlockSlot: Slot;
 };
 
 /**

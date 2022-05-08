@@ -2,7 +2,7 @@ import {altair, ssz} from "@chainsafe/lodestar-types";
 import {DOMAIN_SYNC_COMMITTEE} from "@chainsafe/lodestar-params";
 import {byteArrayEquals} from "@chainsafe/ssz";
 
-import {computeSigningRoot, getBlockRootAtSlot, ISignatureSet, SignatureSetType, verifySignatureSet} from "../../util";
+import {computeSigningRoot, ISignatureSet, SignatureSetType, verifySignatureSet} from "../../util";
 import {CachedBeaconStateAllForks} from "../../types";
 import {G2_POINT_AT_INFINITY} from "../../constants";
 import {getUnparticipantValues} from "../../util/array";
@@ -60,13 +60,18 @@ export function getSyncCommitteeSignatureSet(
   // ```
   // However we need to run the function getSyncCommitteeSignatureSet() for all the blocks in a epoch
   // with the same state when verifying blocks in batch on RangeSync. Therefore we use the block.slot.
-  //
-  // This function expects that block.slot <= state.slot, otherwise we can't get the root sign by the sync committee.
-  // process_sync_committee() is run at the end of process_block(). process_block() is run after process_slots()
-  // which in the spec forces state.slot to equal block.slot.
   const previousSlot = Math.max(block.slot, 1) - 1;
 
-  const rootSigned = getBlockRootAtSlot(state, previousSlot);
+  // The spec uses the state to get the root at previousSlot
+  // ```python
+  // get_block_root_at_slot(state, previous_slot)
+  // ```
+  // However we need to run the function getSyncCommitteeSignatureSet() for all the blocks in a epoch
+  // with the same state when verifying blocks in batch on RangeSync.
+  //
+  // On skipped slots state block roots just copy the latest block, so using the parentRoot here is equivalent.
+  // So getSyncCommitteeSignatureSet() can be called with a state in any slot (with the correct shuffling)
+  const rootSigned = block.parentRoot;
 
   if (!participantIndices) {
     const committeeIndices = state.epochCtx.currentSyncCommitteeIndexed.validatorIndices;

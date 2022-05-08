@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import {AbortSignal} from "@chainsafe/abort-controller";
 import {allForks} from "@chainsafe/lodestar-types";
-import {sleep} from "@chainsafe/lodestar-utils";
 import {ChainEvent} from "../emitter";
 import {JobItemQueue} from "../../util/queue";
 import {BlockError, BlockErrorCode, ChainSegmentError} from "../errors";
-import {verifyBlock, VerifyBlockModules} from "./verifyBlock";
+import {verifyBlocks, VerifyBlockModules} from "./verifyBlock";
 import {importBlock, ImportBlockModules} from "./importBlock";
 import {assertLinearChainSegment} from "./utils/chainSegment";
 import {BlockProcessOpts} from "../options";
@@ -45,6 +44,10 @@ export class BlockProcessor {
   }
 }
 
+///////////////////////////
+// TODO: Run this functions with spec tests of many blocks
+///////////////////////////
+
 /**
  * Validate and process a block
  *
@@ -60,26 +63,7 @@ export async function processBlock(
   partiallyVerifiedBlock: PartiallyVerifiedBlock,
   opts: BlockProcessOpts
 ): Promise<void> {
-  try {
-    const fullyVerifiedBlock = await verifyBlock(modules, partiallyVerifiedBlock, opts);
-    await importBlock(modules, fullyVerifiedBlock);
-  } catch (e) {
-    // above functions should only throw BlockError
-    const err = getBlockError(e, partiallyVerifiedBlock.block);
-
-    if (
-      partiallyVerifiedBlock.ignoreIfKnown &&
-      (err.type.code === BlockErrorCode.ALREADY_KNOWN || err.type.code === BlockErrorCode.GENESIS_BLOCK)
-    ) {
-      // Flag ignoreIfKnown causes BlockErrorCodes ALREADY_KNOWN, GENESIS_BLOCK to resolve.
-      // Return before emitting to not cause loud logging.
-      return;
-    }
-
-    modules.emitter.emit(ChainEvent.errorBlock, err);
-
-    throw err;
-  }
+  await processChainSegment(modules, [partiallyVerifiedBlock], opts);
 }
 
 /**
@@ -90,41 +74,37 @@ export async function processChainSegment(
   partiallyVerifiedBlocks: PartiallyVerifiedBlock[],
   opts: BlockProcessOpts
 ): Promise<void> {
-  const blocks = partiallyVerifiedBlocks.map((b) => b.block);
-  assertLinearChainSegment(modules.config, blocks);
+  if (partiallyVerifiedBlocks.length === 0) {
+    return; // TODO: or throw?
+  } else if (partiallyVerifiedBlocks.length > 1) {
+    assertLinearChainSegment(
+      modules.config,
+      partiallyVerifiedBlocks.map((b) => b.block)
+    );
+  }
 
-  let importedBlocks = 0;
+  // TODO: Does this makes sense with current batch verify approach?
+  //       No block is imported until all blocks are verified
+  const importedBlocks = 0;
 
-  for (const partiallyVerifiedBlock of partiallyVerifiedBlocks) {
-    try {
-      // TODO: Re-use preState
-      const fullyVerifiedBlock = await verifyBlock(modules, partiallyVerifiedBlock, opts);
+  try {
+    const fullyVerifiedBlocks = await verifyBlocks(modules, partiallyVerifiedBlocks, opts);
+
+    for (const fullyVerifiedBlock of fullyVerifiedBlocks) {
+      // No need to sleep(0) here since `importBlock` includes a disk write
+      // TODO: Consider batching importBlock too if it takes significant time
       await importBlock(modules, fullyVerifiedBlock);
-      importedBlocks++;
-
-      // this avoids keeping our node busy processing blocks
-      await sleep(0);
-    } catch (e) {
-      // above functions should only throw BlockError
-      const err = getBlockError(e, partiallyVerifiedBlock.block);
-
-      if (
-        partiallyVerifiedBlock.ignoreIfKnown &&
-        (err.type.code === BlockErrorCode.ALREADY_KNOWN || err.type.code === BlockErrorCode.GENESIS_BLOCK)
-      ) {
-        continue;
-      }
-      if (partiallyVerifiedBlock.ignoreIfFinalized && err.type.code == BlockErrorCode.WOULD_REVERT_FINALIZED_SLOT) {
-        continue;
-      }
-
-      modules.emitter.emit(ChainEvent.errorBlock, err);
-
-      // Convert to ChainSegmentError to append `importedBlocks` data
-      const chainSegmentError = new ChainSegmentError(partiallyVerifiedBlock.block, err.type, importedBlocks);
-      chainSegmentError.stack = err.stack;
-      throw chainSegmentError;
     }
+  } catch (e) {
+    // above functions should only throw BlockError
+    const err = getBlockError(e, partiallyVerifiedBlocks[0].block);
+
+    modules.emitter.emit(ChainEvent.errorBlock, err);
+
+    // Convert to ChainSegmentError to append `importedBlocks` data
+    const chainSegmentError = new ChainSegmentError(partiallyVerifiedBlocks[0].block, err.type, importedBlocks);
+    chainSegmentError.stack = err.stack;
+    throw chainSegmentError;
   }
 }
 
